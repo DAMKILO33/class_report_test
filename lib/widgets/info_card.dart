@@ -17,10 +17,17 @@ class InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
+      elevation: 2,
+
       child: ListTile(
-        leading: Icon(icon, color: AppColors.primary),
+        leading: CircleAvatar(
+          backgroundColor: AppColors.primary.withOpacity(.15),
+
+          child: Icon(icon, color: AppColors.primary),
+        ),
+
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+
         subtitle: Text(description),
       ),
     );

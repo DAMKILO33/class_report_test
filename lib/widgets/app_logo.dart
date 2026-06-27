@@ -7,28 +7,28 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 86,
-      height: 86,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAF0FF),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(Icons.meeting_room_outlined, size: 48, color: AppColors.primary),
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: Icon(
-              Icons.report_problem_outlined,
-              size: 24,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 45,
+          backgroundColor: AppColors.primary,
+          child: const Icon(Icons.school, color: Colors.white, size: 50),
+        ),
+
+        const SizedBox(height: 15),
+
+        const Text(
+          "ClassReport",
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
+
+        const SizedBox(height: 5),
+
+        const Text(
+          "Sistema de Reporte de Incidencias",
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }
