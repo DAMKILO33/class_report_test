@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../common/app_colors.dart';
-import '../widgets/app_logo.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/role_button.dart';
+import '../services/auth_service.dart';
+import 'forgot_password_page.dart';
 import 'home_page.dart';
 import 'register_page.dart';
 
@@ -15,175 +14,231 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  String selectedRole = 'Estudiante';
+  final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
-  final List<Map<String, dynamic>> roles = [
-    {'name': 'Estudiante', 'icon': Icons.school_outlined, 'color': Colors.blue},
-    {'name': 'Docente', 'icon': Icons.person_outline, 'color': Colors.green},
-    {
-      'name': 'Soporte',
-      'icon': Icons.support_agent_outlined,
-      'color': Colors.orange,
-    },
-    {
-      'name': 'Admin',
-      'icon': Icons.admin_panel_settings_outlined,
-      'color': Colors.purple,
-    },
-  ];
+  final TextEditingController _passwordController = TextEditingController();
 
-  void login() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => HomePage(role: selectedRole)),
+  bool _obscurePassword = true;
+  bool _loading = false;
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _loading = true;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    final success = AuthService.instance.login(
+      correo: _emailController.text.trim(),
+      password: _passwordController.text,
     );
+
+    if (!mounted) return;
+
+    setState(() {
+      _loading = false;
+    });
+
+    if (success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomePage(role: AuthService.instance.currentUser!.rol),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Correo o contraseña incorrectos")),
+      );
+    }
   }
 
-  void goToRegister() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const RegisterPage()),
-    );
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Container(
-          margin: const EdgeInsets.all(18),
-          padding: const EdgeInsets.all(22),
-          width: 370,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.black87, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+      backgroundColor: AppColors.background,
+
+      body: SafeArea(
+        child: Center(
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const AppLogo(),
-                const SizedBox(height: 12),
+            padding: const EdgeInsets.all(24),
 
-                const Text(
-                  'ClassReport',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+            child: Form(
+              key: _formKey,
+
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 50,
+                    backgroundColor: AppColors.primary,
+                    child: Icon(Icons.school, size: 55, color: Colors.white),
                   ),
-                ),
 
-                const SizedBox(height: 8),
+                  const SizedBox(height: 25),
 
-                const Text(
-                  'Reporta incidencias con aulas y laboratorios de forma rápida y sencilla.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
+                  const Text(
+                    "ClassReport",
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  ),
 
-                const SizedBox(height: 22),
+                  const SizedBox(height: 10),
 
-                CustomTextField(
-                  controller: emailController,
-                  label: 'Correo institucional',
-                  icon: Icons.email_outlined,
-                ),
+                  const Text(
+                    "Inicia sesión para continuar",
+                    style: TextStyle(color: AppColors.textLight),
+                  ),
 
-                const SizedBox(height: 12),
+                  const SizedBox(height: 35),
 
-                CustomTextField(
-                  controller: passwordController,
-                  label: 'Contraseña',
-                  icon: Icons.lock_outline,
-                  isPassword: true,
-                ),
+                  TextFormField(
+                    controller: _emailController,
 
-                const SizedBox(height: 18),
+                    keyboardType: TextInputType.emailAddress,
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                    decoration: const InputDecoration(
+                      labelText: "Correo",
+                      prefixIcon: Icon(Icons.email),
+                    ),
+
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Ingrese su correo";
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  TextFormField(
+                    controller: _passwordController,
+
+                    obscureText: _obscurePassword,
+
+                    decoration: InputDecoration(
+                      labelText: "Contraseña",
+
+                      prefixIcon: const Icon(Icons.lock),
+
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
                     ),
-                    child: const Text(
-                      'Iniciar sesión',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Ingrese su contraseña";
+                      }
+
+                      if (value.length < 6) {
+                        return "Mínimo 6 caracteres";
+                      }
+
+                      return null;
+                    },
                   ),
-                ),
 
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: OutlinedButton(
-                    onPressed: goToRegister,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      'Registrarse',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  'Seleccionar rol',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: roles.map((role) {
-                    final bool isSelected = selectedRole == role['name'];
-
-                    return RoleButton(
-                      title: role['name'],
-                      icon: role['icon'],
-                      color: role['color'],
-                      isSelected: isSelected,
-                      onTap: () {
-                        setState(() {
-                          selectedRole = role['name'];
-                        });
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      child: const Text("¿Olvidaste tu contraseña?"),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordPage(),
+                          ),
+                        );
                       },
-                    );
-                  }).toList(),
-                ),
-              ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _login,
+
+                      child: _loading
+                          ? const SizedBox(
+                              width: 25,
+                              height: 25,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Iniciar sesión",
+                              style: TextStyle(fontSize: 17),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("¿No tienes cuenta?"),
+
+                      TextButton(
+                        child: const Text("Registrarse"),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  const Divider(),
+
+                  const SizedBox(height: 10),
+
+                  const Text(
+                    "Usuario de prueba",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  const Text("admin@classreport.com"),
+
+                  const Text("Contraseña: 123456"),
+                ],
+              ),
             ),
           ),
         ),
